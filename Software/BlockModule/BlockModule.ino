@@ -205,6 +205,8 @@ void printPacket(lnMsg* LnPacket) {
   Serial.print("\n");
 }
 
+LocoNetCVClass LNCVhandler;
+
 void loop() {
   //timer.update();
   unsigned long currentTime(millis());
@@ -222,7 +224,7 @@ void loop() {
       #ifdef DO_DEBUG
       printPacket(LnPacket);
       #endif
-      packetConsumed = LocoNet.processLNCVMessage(LnPacket);
+      packetConsumed = LNCVhandler.processLNCVMessage(LnPacket);
     }
   }
   

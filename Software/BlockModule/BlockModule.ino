@@ -10,7 +10,11 @@
 //#define DO_DEBUG
 
 // Harware Version for Prototype
-#define HW_Ver 0x03
+#define HW_Ver 0x01
+// Hardware Version for HFD-2-L2 modules
+// #define HW_Ver 0x02
+// Hardware Version for HFD-3-L2 modules
+// #define HW_Ver 0x03
 // include HW_Ver before this!
 #include "hw_config.h"
 

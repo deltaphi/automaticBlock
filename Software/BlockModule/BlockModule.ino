@@ -1,6 +1,3 @@
-//#include <Event.h>
-//#include <Timer.h>
-
 #include <EEPROMEx.h>
 
 #include <LocoNet.h>
@@ -27,13 +24,17 @@
 // Macro for reading (initializing) a sensor value
 #define READ_SENSOR(stateArray, sensorIdx) ((stateArray)[(sensorIdx)] = digitalReadFast(SENSOR_##sensorIdx))
 //#define CHECK_SENSOR(stateArray, sensorIdx, tempVar) (stateArray[sensorIdx] == (tempVar = digitalReadFast(SENSOR_##sensorIdx)) ? false : {array[sensorIdx] = tempVar; true })
-#define UPDATE_SENSOR(stateArray, sensorIdx, tempVar, addrArray) \
+#define UPDATE_SENSOR(stateArray, timeArray, timeThreshold, reportedArray, sensorIdx, tempVar, addrArray, currentTime) \
   (tempVar) = digitalReadFast(SENSOR_##sensorIdx); \
   if ((stateArray)[(sensorIdx)] != (tempVar)) { \
     (stateArray)[(sensorIdx)] = (tempVar); \
+    ((timeArray)[(sensorIdx)]) = currentTime; \
+    (reportedArray)[(sensorIdx)] = false; \
+  } else \
+  if (!((reportedArray)[(sensorIdx)]) && ((currentTime) - (timeArray)[(sensorIdx)] > (10.0 * sensorTimeThreshold))) { \
     LocoNet.reportSensor((addrArray)[(sensorIdx)], ((stateArray)[(sensorIdx)] == LOW ? HIGH : LOW)); \
+    (reportedArray)[(sensorIdx)] = true; \
   }
-
 // Macro to express whether var is in [lower, higher)
 #define IS_IN_RANGE(lower, var, higher) ((lower) <= (var) && (var) < (higher))
 
@@ -77,7 +78,14 @@ uint16_t switchAddress[SWITCH_COUNT];
 // Define the array for holding the sensor states
 // TODO: This could be done more efficiently, however, this
 // kind of storage allows for seamless integration with LocoNetClass::notifySensorState()
+
 uint8_t sensorState[SENSOR_COUNT];
+unsigned long sensorStateTime[SENSOR_COUNT];
+boolean sensorStateReported[SENSOR_COUNT];
+
+// For how long does a sensor value have to be stable before we report it?
+uint8_t sensorTimeThreshold(0);
+// Value is in 10ms. I.e., a value of 50 would cause the code to wait for 500ms (1/2s) before reporting!
 
 //int8_t switchTimerId[SWITCH_COUNT];
 boolean switchTimerActive[SWITCH_COUNT];
@@ -109,17 +117,8 @@ lnMsg *LnPacket;
 
 void loadLNCV();
 
-void setup() {
-  // Start Serial for debugging
-#ifdef DO_DEBUG
-  Serial.begin(115200);
-#endif
-
-  // Clear the switch timer array
-  //memset(switchTimerId, (int8_t) TIMER_NOT_AN_EVENT, SWITCH_COUNT);
-  memset(switchTimerActive, false, SWITCH_COUNT);
-  
-  // Set pin modes
+void setupPinMode() {
+  {
   pinModeFast(SENSOR_0, INPUT);
   pinModeFast(SENSOR_1, INPUT);
   pinModeFast(SENSOR_2, INPUT);
@@ -128,7 +127,9 @@ void setup() {
   pinModeFast(SENSOR_5, INPUT);
   pinModeFast(SENSOR_6, INPUT);
   pinModeFast(SENSOR_7, INPUT);
+  }
 
+  {
   pinModeFast(SWITCH_0_RT, OUTPUT);
   pinModeFast(SWITCH_0_GN, OUTPUT);
   pinModeFast(SWITCH_1_RT, OUTPUT);
@@ -137,7 +138,11 @@ void setup() {
   pinModeFast(SWITCH_2_GN, OUTPUT);
   pinModeFast(SWITCH_3_RT, OUTPUT);
   pinModeFast(SWITCH_3_GN, OUTPUT);
+  }
+}
 
+void setupInitialValues() {
+ {
   digitalWriteFast(SWITCH_0_RT, LOW);
   digitalWriteFast(SWITCH_0_GN, LOW);
   digitalWriteFast(SWITCH_1_RT, LOW);
@@ -146,7 +151,40 @@ void setup() {
   digitalWriteFast(SWITCH_2_GN, LOW);
   digitalWriteFast(SWITCH_3_RT, LOW);
   digitalWriteFast(SWITCH_3_GN, LOW);
+  }
+ 
+}
 
+#ifdef DO_DEBUG
+int freeRam () {
+  extern int __heap_start, *__brkval; 
+  int v; 
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
+}
+#endif
+
+void setup() {
+  // Start Serial for debugging
+#ifdef DO_DEBUG
+  Serial.begin(115200);
+  Serial.print(F("Starting up...\n"));
+  //Serial.print(freeRam());
+  Serial.print("ModuleAddress: ");
+  Serial.print(moduleAddress);
+  Serial.print("\n");
+#endif
+
+  // Clear the switch timer array
+  //memset(switchTimerId, (int8_t) TIMER_NOT_AN_EVENT, SWITCH_COUNT);
+  memset(switchTimerActive, false, SWITCH_COUNT);
+  
+  //Serial.println("Setting Pin Modes");
+  //delay(500);
+  
+  // Set pin modes
+  setupPinMode();
+  setupInitialValues();
+  
 // Click a relay to show that we are alive
   //digitalWriteFast(SWITCH_0_RT, HIGH);
   //delay(50);
@@ -156,6 +194,10 @@ void setup() {
   //delay(50);
   //digitalWriteFast(SWITCH_0_GN, LOW);
 
+  #ifdef DO_DEBUG
+  Serial.print(F("Reading LNCVs\n"));
+  #endif
+  
   // Read LNCVs
   programmingMode = false;
   loadLNCV();
@@ -165,10 +207,14 @@ void setup() {
   Serial.print(moduleAddress);
   Serial.print("\n");
   #endif
+  if (moduleAddress == 0) {
+    moduleAddress = 1;
+  }
 
   // Start LocoNet
   LocoNet.init(LOCONET_TX_PIN);
   
+  {
   // Initialize the sensor state
   READ_SENSOR(sensorState, 0);
   READ_SENSOR(sensorState, 1);
@@ -178,6 +224,7 @@ void setup() {
   READ_SENSOR(sensorState, 5);
   READ_SENSOR(sensorState, 6);
   READ_SENSOR(sensorState, 7);
+  }
   
   if (reportInitial) {
     for (int i(0); i < SENSOR_COUNT; ++i) {
@@ -185,10 +232,20 @@ void setup() {
       LocoNet.reportSensor(sensorAddress[i], (sensorState[i] == LOW ? HIGH : LOW));
     }
   }
+ 
+  for (int i(0); i < SENSOR_COUNT; ++i) {
+    sensorStateReported[i] = true;
+  }
+  
+#ifdef DO_DEBUG
+//  Serial.print(freeRam());
+  Serial.print(F("Setup done.\n"));
+#endif
 }
 
+#ifdef DO_DEBUG
 void printPacket(lnMsg* LnPacket) {
-  Serial.print(F("LoconetPacket 2"));
+  Serial.print("LoconetPacket ");
   Serial.print(LnPacket->ub.command, HEX);
   Serial.print(" ");
   Serial.print(LnPacket->ub.mesg_size, HEX);
@@ -204,20 +261,38 @@ void printPacket(lnMsg* LnPacket) {
   Serial.print(LnPacket->ub.PXCT1, HEX);
   for (int i(0); i < 7; ++i) {
     Serial.print(" ");
-    Serial.print(LnPacket->ub.D[i], HEX);
+    Serial.print(LnPacket->ub.payload.D[i], HEX);
   }
   Serial.print("\n");
 }
+#endif
 
 LocoNetCVClass LNCVhandler;
 
-void loop() {
-  //timer.update();
+void handleSwitchTimers() {
   unsigned long currentTime(millis());
   HANDLE_SWITCH_TIMER(switchTimerActive, switchLastActive, 0, currentTime)
   HANDLE_SWITCH_TIMER(switchTimerActive, switchLastActive, 1, currentTime)
   HANDLE_SWITCH_TIMER(switchTimerActive, switchLastActive, 2, currentTime)
   HANDLE_SWITCH_TIMER(switchTimerActive, switchLastActive, 3, currentTime)
+}
+
+void checkSensors() {
+   // check Sensors for modification and send out updates
+  uint8_t tempVar;
+  unsigned long now(millis());
+  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThreshold, sensorStateReported, 0, tempVar, sensorAddress, now);
+  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThreshold, sensorStateReported, 1, tempVar, sensorAddress, now);
+  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThreshold, sensorStateReported, 2, tempVar, sensorAddress, now);
+  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThreshold, sensorStateReported, 3, tempVar, sensorAddress, now);
+  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThreshold, sensorStateReported, 4, tempVar, sensorAddress, now);
+  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThreshold, sensorStateReported, 5, tempVar, sensorAddress, now);
+  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThreshold, sensorStateReported, 6, tempVar, sensorAddress, now);
+  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThreshold, sensorStateReported, 7, tempVar, sensorAddress, now);
+}
+
+void loop() {
+  handleSwitchTimers();
   
   // Process Loconet
   LnPacket = LocoNet.receive();
@@ -225,23 +300,14 @@ void loop() {
   if( LnPacket ) {
     packetConsumed = LocoNet.processSwitchSensorMessage(LnPacket);
     if (packetConsumed == 0) {
-      #ifdef DO_DEBUG
+#ifdef DO_DEBUG
       printPacket(LnPacket);
-      #endif
+#endif
       packetConsumed = LNCVhandler.processLNCVMessage(LnPacket);
     }
   }
   
-  // check Sensors for modification and send out updates
-  uint8_t tempVar;
-  UPDATE_SENSOR(sensorState, 0, tempVar, sensorAddress);
-  UPDATE_SENSOR(sensorState, 1, tempVar, sensorAddress);
-  UPDATE_SENSOR(sensorState, 2, tempVar, sensorAddress);
-  UPDATE_SENSOR(sensorState, 3, tempVar, sensorAddress);
-  UPDATE_SENSOR(sensorState, 4, tempVar, sensorAddress);
-  UPDATE_SENSOR(sensorState, 5, tempVar, sensorAddress);
-  UPDATE_SENSOR(sensorState, 6, tempVar, sensorAddress);
-  UPDATE_SENSOR(sensorState, 7, tempVar, sensorAddress);
+  checkSensors();
 }
 
 void loadLNCV() {
@@ -250,8 +316,13 @@ void loadLNCV() {
 
   reportInitial = EEPROM.readBit(3, 0);
 
+  sensorTimeThreshold = EEPROM.readByte(5);
+  if (sensorTimeThreshold == 0xFF) {
+    sensorTimeThreshold = 0;
+  }
+
   // Load Sensor Addresses
-  for (int i(0); i < SENSOR_COUNT; ++i) {
+  for (unsigned int i(0); i < SENSOR_COUNT; ++i) {
     uint8_t lncvAddress(10 + (i*2));
     sensorAddress[i] = EEPROM.readInt(lncvAddress);
     if (sensorAddress[i] == 0xFFFF) {
@@ -260,7 +331,7 @@ void loadLNCV() {
   }
   
   // Load Switch Addresses
-  for (int i(0); i < SWITCH_COUNT; ++i) {
+  for (unsigned int i(0); i < SWITCH_COUNT; ++i) {
     uint8_t lncvAddress(30 + (i*2));
     switchAddress[i] = EEPROM.readInt(lncvAddress);
     if (switchAddress[i] == 0xFFFF) {
@@ -277,6 +348,9 @@ void commitLNCV() {
   
   // Store ReportInitial Bit
   EEPROM.updateBit(3, 0, reportInitial);
+  
+  // Store reporting threshold
+  EEPROM.updateByte(5, sensorTimeThreshold);
   
   // Store Sensor Addresses
   for (int i(0); i < SENSOR_COUNT; ++i) {
@@ -320,6 +394,10 @@ int8_t notifyLNCVread( uint16_t ArtNr, uint16_t lncvAddress, uint16_t, uint16_t 
     } else if (lncvAddress == 1) {
         // settings
         lncvValue = (reportInitial ? 0x01 : 0x00);
+        return LNCV_LACK_OK;
+    } else if (lncvAddress == 2) {
+        // reporting threshold
+        lncvValue = sensorTimeThreshold;
         return LNCV_LACK_OK;
     } else if (IS_IN_RANGE(10, lncvAddress, 18)) {
       // Sensor Adresses carry an offset - Sensor 1 is encoded as 0x0000.
@@ -375,6 +453,14 @@ int8_t notifyLNCVwrite( uint16_t ArtNr, uint16_t lncvAddress, uint16_t lncvValue
         // settings
         reportInitial = (lncvValue & 0x01);
         return LNCV_LACK_OK;
+    } else if (lncvAddress == 2) {
+        // reporting threshold
+        if (IS_IN_RANGE(0, lncvValue, 254)) {
+          sensorTimeThreshold = lncvValue;
+          return LNCV_LACK_OK;
+        } else {
+          return LNCV_LACK_ERROR_OUTOFRANGE;
+        }
     } else if (IS_IN_RANGE(10, lncvAddress, 18)) {
       // Sensor Adresses carry an offset - Sensor 1 is encoded as 0x0000.
       sensorAddress[lncvAddress - 10] = lncvValue - 1;

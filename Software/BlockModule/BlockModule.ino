@@ -21,20 +21,20 @@
 // maximum time any relay coil is active in milliseconds
 #define SWITCH_ACTIVE_TIME_MS 50
 
-// Macro for reading (initializing) a sensor value
-#define READ_SENSOR(stateArray, sensorIdx) ((stateArray)[(sensorIdx)] = digitalReadFast(SENSOR_##sensorIdx))
-//#define CHECK_SENSOR(stateArray, sensorIdx, tempVar) (stateArray[sensorIdx] == (tempVar = digitalReadFast(SENSOR_##sensorIdx)) ? false : {array[sensorIdx] = tempVar; true })
+#define sensorTimeThresholdFactor 10.0
+
+// Macro for reading a sensor value and possibly sending an update message
 #define UPDATE_SENSOR(stateArray, timeArray, timeThreshold, reportedArray, sensorIdx, tempVar, addrArray, currentTime) \
   (tempVar) = digitalReadFast(SENSOR_##sensorIdx); \
   if ((stateArray)[(sensorIdx)] != (tempVar)) { \
     (stateArray)[(sensorIdx)] = (tempVar); \
     ((timeArray)[(sensorIdx)]) = currentTime; \
-    (reportedArray)[(sensorIdx)] = false; \
   } else \
-  if (!((reportedArray)[(sensorIdx)]) && ((currentTime) - (timeArray)[(sensorIdx)] > (10.0 * sensorTimeThreshold))) { \
+  if (((reportedArray)[(sensorIdx)] != (stateArray)[(sensorIdx)]) && ((currentTime) - (timeArray)[(sensorIdx)] > ((sensorTimeThresholdFactor) * sensorTimeThreshold))) { \
     LocoNet.reportSensor((addrArray)[(sensorIdx)], ((stateArray)[(sensorIdx)] == LOW ? HIGH : LOW)); \
-    (reportedArray)[(sensorIdx)] = true; \
+    (reportedArray)[(sensorIdx)] = (stateArray)[(sensorIdx)]; \
   }
+
 // Macro to express whether var is in [lower, higher)
 #define IS_IN_RANGE(lower, var, higher) ((lower) <= (var) && (var) < (higher))
 
@@ -59,18 +59,6 @@
     (switchTimerActiveArray)[(switchIdx)] = false; \
   }
   
-//#define HANDLE_SWITCH(Address, addrArray, switchTimerIdArray, Direction, switchIdx) \
-//  if ((addrArray)[(switchIdx)] == (Address)) { \
-//    timer.stop((switchTimerIdArray)[(switchIdx)]); \
-//    if ((Direction) == 0) { \
-//      digitalWriteFast(SWITCH_##switchIdx##_RT, LOW); \
-//      (switchTimerIdArray)[(switchIdx)] = timer.pulseImmediate(SWITCH_##switchIdx##_GN, SWITCH_ACTIVE_TIME_MS, HIGH); \
-//    } else { \
-//      digitalWriteFast(SWITCH_##switchIdx##_GN, LOW); \
-//      (switchTimerIdArray)[(switchIdx)] = timer.pulseImmediate(SWITCH_##switchIdx##_RT, SWITCH_ACTIVE_TIME_MS, HIGH); \
-//    } \
-//  }
-
 // Define the arrays holding the addresses
 uint16_t sensorAddress[SENSOR_COUNT];
 uint16_t switchAddress[SWITCH_COUNT];
@@ -81,7 +69,7 @@ uint16_t switchAddress[SWITCH_COUNT];
 
 uint8_t sensorState[SENSOR_COUNT];
 unsigned long sensorStateTime[SENSOR_COUNT];
-boolean sensorStateReported[SENSOR_COUNT];
+uint8_t sensorStateReported[SENSOR_COUNT];
 
 // For how long does a sensor value have to be stable before we report it?
 uint8_t sensorTimeThreshold(0);
@@ -214,27 +202,19 @@ void setup() {
   // Start LocoNet
   LocoNet.init(LOCONET_TX_PIN);
   
-  {
   // Initialize the sensor state
-  READ_SENSOR(sensorState, 0);
-  READ_SENSOR(sensorState, 1);
-  READ_SENSOR(sensorState, 2);
-  READ_SENSOR(sensorState, 3);
-  READ_SENSOR(sensorState, 4);
-  READ_SENSOR(sensorState, 5);
-  READ_SENSOR(sensorState, 6);
-  READ_SENSOR(sensorState, 7);
-  }
+	checkSensors();
   
   if (reportInitial) {
     for (int i(0); i < SENSOR_COUNT; ++i) {
-      delay(10);
-      LocoNet.reportSensor(sensorAddress[i], (sensorState[i] == LOW ? HIGH : LOW));
+			// To force a report, set to the opposite of what we currently see
+  	  sensorStateReported[i] = (sensorState[i] == LOW ? HIGH : LOW);
     }
-  }
- 
-  for (int i(0); i < SENSOR_COUNT; ++i) {
-    sensorStateReported[i] = true;
+  } else {
+  	for (int i(0); i < SENSOR_COUNT; ++i) {
+			// To suppress a report, set to the value we currently see
+  	  sensorStateReported[i] = sensorState[i];
+  	}
   }
   
 #ifdef DO_DEBUG
@@ -242,6 +222,7 @@ void setup() {
   Serial.print(F("Setup done.\n"));
 #endif
 }
+
 
 #ifdef DO_DEBUG
 void printPacket(lnMsg* LnPacket) {

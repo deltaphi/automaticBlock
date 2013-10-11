@@ -307,8 +307,9 @@ void loadLNCV() {
     uint8_t lncvAddress(10 + (i*2));
     sensorAddress[i] = EEPROM.readInt(lncvAddress);
     if (sensorAddress[i] == 0xFFFF) {
-      sensorAddress[i] = i + 1;
+      sensorAddress[i] = i;
     }
+    sensorAddress[i] += 1;
   }
   
   // Load Switch Addresses
@@ -316,11 +317,29 @@ void loadLNCV() {
     uint8_t lncvAddress(30 + (i*2));
     switchAddress[i] = EEPROM.readInt(lncvAddress);
     if (switchAddress[i] == 0xFFFF) {
-      switchAddress[i] = i + 1;
+      switchAddress[i] = i;
     }
+    switchAddress[i] += 1;
   }
   
   // Nothing else to be loaded right now
+}
+
+void resetLNCV() {
+  moduleAddress = 0xFFFF;
+  reportInitial = true;
+  sensorTimeThreshold = 0xFF;
+  // Store Sensor Addresses
+  for (int i(0); i < SENSOR_COUNT; ++i) {
+    uint8_t lncvAddress(10 + (i*2));
+    sensorAddress[i] = sensorAddress[i] + 1;
+  }
+  
+  // Store Switch Addresses
+  for (int i(0); i < SWITCH_COUNT; ++i) {
+    uint8_t lncvAddress(30 + (i*2));
+    switchAddress[i] = switchAddress[i] + 1;
+  }
 }
 
 void commitLNCV() {
@@ -336,16 +355,17 @@ void commitLNCV() {
   // Store Sensor Addresses
   for (int i(0); i < SENSOR_COUNT; ++i) {
     uint8_t lncvAddress(10 + (i*2));
-    EEPROM.updateInt(lncvAddress, sensorAddress[i]);
+    EEPROM.updateInt(lncvAddress, sensorAddress[i] - 1);
   }
   
   // Store Switch Addresses
   for (int i(0); i < SWITCH_COUNT; ++i) {
     uint8_t lncvAddress(30 + (i*2));
-    EEPROM.updateInt(lncvAddress, switchAddress[i]);
+    EEPROM.updateInt(lncvAddress, switchAddress[i] - 1);
   }
   
   // Nothing else to be stored right now
+  loadLNCV();
 }
 
 // Handle the Switches
@@ -381,8 +401,7 @@ int8_t notifyLNCVread( uint16_t ArtNr, uint16_t lncvAddress, uint16_t, uint16_t 
         lncvValue = sensorTimeThreshold;
         return LNCV_LACK_OK;
     } else if (IS_IN_RANGE(10, lncvAddress, 18)) {
-      // Sensor Adresses carry an offset - Sensor 1 is encoded as 0x0000.
-      lncvValue = sensorAddress[lncvAddress - 10] + 1;
+      lncvValue = sensorAddress[lncvAddress - 10];
       return LNCV_LACK_OK;
     } else if (IS_IN_RANGE(30, lncvAddress, 34)) {
       lncvValue = switchAddress[lncvAddress - 30];
@@ -442,9 +461,12 @@ int8_t notifyLNCVwrite( uint16_t ArtNr, uint16_t lncvAddress, uint16_t lncvValue
         } else {
           return LNCV_LACK_ERROR_OUTOFRANGE;
         }
+    } else if (lncvAddress == 8) {
+        // reset all configuration data
+        resetLNCV();
+        return LNCV_LACK_OK;
     } else if (IS_IN_RANGE(10, lncvAddress, 18)) {
-      // Sensor Adresses carry an offset - Sensor 1 is encoded as 0x0000.
-      sensorAddress[lncvAddress - 10] = lncvValue - 1;
+      sensorAddress[lncvAddress - 10] = lncvValue;
       return LNCV_LACK_OK;
     } else if (IS_IN_RANGE(30, lncvAddress, 34)) {
       switchAddress[lncvAddress - 30] = lncvValue;

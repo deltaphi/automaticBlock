@@ -38,7 +38,14 @@
 #include "Sensor.h"
 #include "LocoNetRequestQueue.h"
 
+#ifdef STRECKENBLOCK_H__DEBUG
+void printStreckenblockState();
+#endif
+
 class Streckenblock {
+#ifdef STRECKENBLOCK_H__DEBUG
+  friend void printStreckenblockState();
+#endif
   public:
     enum track_state { STOP, RUN };
   protected:
@@ -50,6 +57,7 @@ class Streckenblock {
     Streckenblock * before;
     Streckenblock * after;
     bool continueBit;
+    bool frontSensorWasOccupied;
     
     /* handling sensor events */
     void frontSensorOccupied();
@@ -58,17 +66,23 @@ class Streckenblock {
     void mainSensorFree();
     /* Handling the track becoming free */
     void trackFree();
-    
+
+public:
     void requestSwitchRed();
     void requestSwitchGreen();
 
-    void getId() const { return id; }
+protected:
+    uint8_t getId() const { return id; }
 
   public:
-    Streckenblock(): id(-1), lnReqQueue(NULL), mainSensor(0), frontSensor(0), switchAddress(0), before(NULL), after(NULL), continueBit(false) {}
+    Streckenblock(): id(-1), lnReqQueue(NULL), mainSensor(0), frontSensor(0), switchAddress(0),
+                      before(NULL), after(NULL), continueBit(false), frontSensorWasOccupied(false) {}
+    
     Streckenblock(int id, LocoNetRequestQueue * lnReqQueue, uint16_t mainSensorAddress, uint16_t frontSensorAddress, uint16_t switchAddress):
-        id(id), lnReqQueue(lnReqQueue), mainSensor(mainSensorAddress), frontSensor(frontSensorAddress), switchAddress(switchAddress), before(NULL), after(NULL), continueBit(false) {}
-    ~Streckenblock() { before = NULL; after = NULL; lnReqQueue = NULL; };
+        id(id), lnReqQueue(lnReqQueue), mainSensor(mainSensorAddress), frontSensor(frontSensorAddress), switchAddress(switchAddress),
+        before(NULL), after(NULL), continueBit(false), frontSensorWasOccupied(false) {}
+    
+  ~Streckenblock() { before = NULL; after = NULL; lnReqQueue = NULL; };
     
     inline void setBefore(Streckenblock * before) { this->before = before; }
     inline void setAfter(Streckenblock * after) { this->after = after; }
@@ -84,13 +98,15 @@ class Streckenblock {
     void notifyAfterTrackIsFree();
 
   protected:
-    void printState() { Serial.print("Block "); Serial.print(id); Serial.print(" is "); 
+#ifdef STRECKENBLOCK_H__DEBUG
+    void printState() { Serial.print(F("Block ")); Serial.print(id); Serial.print(F(" is ")); 
       if (isFree()) {
-        Serial.print("FREE.\n");
+        Serial.print(F("FREE.\n"));
       } else {
-        Serial.print("OCCUPIED.\n");
+        Serial.print(F("OCCUPIED.\n"));
       }
     }
+#endif
 };
 
 #endif

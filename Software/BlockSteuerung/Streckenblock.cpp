@@ -34,15 +34,33 @@
 
 #include "Streckenblock.h"
 
+#ifdef STRECKENBLOCK_H__DEBUG
+#define DEBUG(x) Serial.print(x)
+#define DEBUG2(x, y) Serial.print(x, y)
+#else
+#define DEBUG(x)
+#define DEBUG2(x, y)
+#endif
+
 bool Streckenblock::processSensorNotification(uint16_t Address, uint8_t State) {
   bool change(false);
   if (mainSensor.getAddress() == Address) {
     change = mainSensor.processNotification(State);
-    Serial.print(id);
-    Serial.print(": main sensor ");
-    change ? Serial.print("true\n") : Serial.print("false\n");
+    DEBUG(id);
+    DEBUG(": main sensor ");
+    DEBUG(mainSensor.getAddress());
+#ifdef STRECKENBLOCK_H__DEBUG
+    change ? DEBUG(" changed") : DEBUG(" constant");
+    if (mainSensor.isFree()) {
+      DEBUG(F(" FREE\n"));
+    } else {
+      DEBUG(F(" OCCUPIED\n"));
+    }
+#endif
     if (change) {
+#ifdef STRECKENBLOCK_H__DEBUG
       printState();
+#endif
       if (mainSensor.isFree()) {
         mainSensorFree();
       } else {
@@ -53,11 +71,21 @@ bool Streckenblock::processSensorNotification(uint16_t Address, uint8_t State) {
   }
   if (frontSensor.getAddress() == Address) {
     change = frontSensor.processNotification(State);
-    Serial.print(id);
-    Serial.print(": main sensor ");
-    change ? Serial.print("true\n") : Serial.print("false\n");
-    if (change) {
+    DEBUG(id);
+    DEBUG(": front sensor ");
+    DEBUG(frontSensor.getAddress());
+#ifdef STRECKENBLOCK_H__DEBUG
+    change ? Serial.print(" changed") : Serial.print(" constant");
+    if (frontSensor.isFree()) {
+      Serial.print(F(" FREE\n"));
+    } else {
+      Serial.print(F(" OCCUPIED\n"));
+    }
+#endif
+    if (change && !frontSensorWasOccupied) {
+#ifdef STRECKENBLOCK_H__DEBUG
       printState();
+#endif
       if (frontSensor.isFree()) {
         frontSensorFree();
       } else {
@@ -70,36 +98,78 @@ bool Streckenblock::processSensorNotification(uint16_t Address, uint8_t State) {
 }
 
 void Streckenblock::frontSensorOccupied() {
+  DEBUG(id);
+  DEBUG(F(": frontSensorOccupied "));
+  if (frontSensorWasOccupied) {
+    DEBUG(F("aborted\n."));
+    return;
+  }
+  DEBUG(F("running.\n"));
+  
+  frontSensorWasOccupied = true;
+  
+  DEBUG(id);
+  DEBUG(F(": frontSensorOccupied: continueBit is "));
   if (continueBit == false) {
+    DEBUG(F("FALSE, "));
     // Only do stuff if this is not the continuation of a train
     if (after == NULL) {
+      DEBUG(F("After is NULL\n"));
       // Last block. stop the train.
       requestSwitchRed();
       // Set continue bit, "next" block now has full control over the train.
-      continueBit = true;
+      //continueBit = true;
     } else {
+      DEBUG(F("After "));
+      DEBUG(after->getId());
+      DEBUG(F(" is PRESENT and "));
       // check if the after block is occupied
       if (after->isFree()) {
+        DEBUG(F("FREE\n"));
         // Train can leave right away, this is now a continuation.
         continueBit = true;
         requestSwitchGreen();
       } else {
+        DEBUG(F("OCCUPIED\n"));
         // Train must wait
         requestSwitchRed();
       }
     } 
-  }
+  } else 
+    DEBUG(F("TRUE\n"));
+    
+  printStreckenblockState();
 }
 
-void Streckenblock::frontSensorFree() { if (isFree()) { trackFree(); }; }
+void Streckenblock::frontSensorFree() { 
+    DEBUG(id);
+	DEBUG(": MainSensor Free\n");
+	if (isFree()) { 
+		trackFree();
+	};
+}
 
 void Streckenblock::mainSensorOccupied() {}
 
-void Streckenblock::mainSensorFree() { if (isFree()) { trackFree(); }; }
+void Streckenblock::mainSensorFree() { 
+    DEBUG(id); 
+	DEBUG(": MainSensor Free\n");
+	if (isFree()) {
+		trackFree();
+	};
+}
 
 void Streckenblock::trackFree() {
+  DEBUG(id);
+  DEBUG(F(": Track Free\n"));
   continueBit = false; // reset continue
+  frontSensorWasOccupied = false; // reset front sensor hysteresis
   requestSwitchGreen(); // turn on moving trains to the front
+  
+#ifdef STRECKENBLOCK_H__DEBUG
+  printStreckenblockState();
+#endif
+  
   if (before != NULL) {
     before->notifyAfterTrackIsFree(); // tell the before track that this one is now free
   }
@@ -107,10 +177,12 @@ void Streckenblock::trackFree() {
 
 void Streckenblock::notifyAfterTrackIsFree() {
   // Next track is free
+  DEBUG(id);
+  DEBUG(F(": notifyAfterTrackIsFree\n"));
   
-  /* Only use this of the frontSensor is occupied.
-   * this way, a train can be stopped by a obstacle appearing suddenly on the next track */
-  if (frontSensor.isOccupied()) {
+  /* Only use this if the frontSensor is/was occupied.
+   * this way, a train can be stopped by an obstacle appearing suddenly on the next track */
+  if (frontSensorWasOccupied) {
     // If there was a train here, its now a continuation.
     continueBit = true;
     requestSwitchGreen(); // run trains

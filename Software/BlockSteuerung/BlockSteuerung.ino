@@ -39,9 +39,15 @@
 #include "LocoNetRequestQueue.h"
 #include "Streckenblock.h"
 
+#ifdef DO_DEBUG
+#define DEBUG(x) Serial.print(x)
+#else
+#define DEBUG(x)
+#endif
+
 LocoNetRequestQueue lnReqQueue;
 
-#define STRECKENBLOCK_LENGTH 2
+#define STRECKENBLOCK_LENGTH 17
 
 Streckenblock blocks[STRECKENBLOCK_LENGTH];
 
@@ -51,22 +57,74 @@ void processLocoNetRequestQueue() {
   lnReqQueue.processNextMessage();
 }
 
+#ifdef DO_DEBUG
+void printStreckenblockState() {
+  // Occupied (0: free, 1: main, 2: front, 3: both)
+  // continue bit (X/_)
+  for (uint8_t i(0); i < STRECKENBLOCK_LENGTH; ++i) {
+    Serial.print(F(" "));
+    uint8_t state(0);
+    if (blocks[i].frontSensor.isOccupied() || blocks[i].frontSensorWasOccupied) {
+      state += 2;
+    }
+    if (blocks[i].mainSensor.isOccupied()) {
+      state += 1;
+    }
+    Serial.print(state);
+  }
+  Serial.print("\n");
+  for (uint8_t i(0); i < STRECKENBLOCK_LENGTH; ++i) {
+    Serial.print(F(" "));
+    if (blocks[i].continueBit) {
+      Serial.print("X");
+    } else {
+      Serial.print("_");
+    }
+  }
+  Serial.print("\n");
+}
+#endif
+
 void setup() {
   // First initialize the LocoNet interface
-  LocoNet.init();
+  LocoNet.init(7);
 
   // Configure the serial port for 57600 baud
+#ifdef DO_DEBUG
   Serial.begin(115200);
+#endif
   
-  Serial.print("Blockstraßensteuerung startet.\n");
+  DEBUG("Blockstraßensteuerung startet.\n");
   // Note: Set 1 and 2 to RED!!!
   // Note: Init 3 as GREEN, 4 as RED!!!
   // TODO: How to initialize everything after a reboot?
-  blocks[0] = Streckenblock(1, &lnReqQueue, 1, 2, 131);
-  blocks[1] = Streckenblock(2, &lnReqQueue, 3, 4, 132);
+  blocks[0] = Streckenblock(0, &lnReqQueue, 513, 514, 200);
+  blocks[1] = Streckenblock(1, &lnReqQueue, 515, 516, 201);
+  blocks[2] = Streckenblock(2, &lnReqQueue, 517, 518, 202);
+  blocks[3] = Streckenblock(3, &lnReqQueue, 519, 520, 203);
+  blocks[4] = Streckenblock(4, &lnReqQueue, 521, 522, 204);
+  blocks[5] = Streckenblock(5, &lnReqQueue, 523, 524, 205);
+  blocks[6] = Streckenblock(6, &lnReqQueue, 525, 526, 206);
+  blocks[7] = Streckenblock(7, &lnReqQueue, 527, 528, 207);
+  blocks[8] = Streckenblock(8, &lnReqQueue, 529, 530, 208);
+  //blocks[9] = Streckenblock(1, &lnReqQueue, 531, 532, 209);
+  blocks[9] = Streckenblock(9, &lnReqQueue, 533, 534, 210);
+  blocks[10] = Streckenblock(10, &lnReqQueue, 535, 536, 211);
+  blocks[11] = Streckenblock(11, &lnReqQueue, 537, 538, 212);
+  blocks[12] = Streckenblock(12, &lnReqQueue, 539, 540, 213);
+  blocks[13] = Streckenblock(13, &lnReqQueue, 541, 542, 214);
+  blocks[14] = Streckenblock(14, &lnReqQueue, 543, 544, 215);
+  blocks[15] = Streckenblock(15, &lnReqQueue, 545, 546, 216);
+  blocks[16] = Streckenblock(16, &lnReqQueue, 547, 548, 217);
   
-  blocks[0].setAfter(&blocks[1]);
-  blocks[1].setBefore(&blocks[0]);
+  for (uint8_t i(0); i < (STRECKENBLOCK_LENGTH - 1); ++i) {
+    blocks[i+1].setBefore(&blocks[i]);
+    blocks[i].setAfter(&blocks[i+1]);
+  }
+  
+#ifdef DO_DEBUG
+  printStreckenblockState();
+#endif
 }
 
 void loop() {
@@ -89,7 +147,7 @@ void loop() {
 
 void notifySensor( uint16_t Address, uint8_t State ) {
   // check all blocks
-  Serial.print("Received: Sensor "); Serial.print(Address); Serial.print(", State "); Serial.print(State); Serial.print("\n");
+  //Serial.print("Received: Sensor "); Serial.print(Address); Serial.print(", State "); Serial.print(State); Serial.print("\n");
   for (int i(0); i < STRECKENBLOCK_LENGTH; ++i) {
     blocks[i].processSensorNotification(Address, State);
   }
@@ -100,9 +158,9 @@ void notifySwitchRequest( uint16_t Address, uint8_t Output, uint8_t Direction ) 
   if (Address == EXIT_SIGNAL) {
     // last block does not have to do anything
     if (SWITCH_RED == Direction) {
-      blocks[STRECKENBLOCK_LENGTH-2].notifyContinue(Streckenblock::STOP);
+      blocks[STRECKENBLOCK_LENGTH-1].requestSwitchRed(); //notifyContinue(Streckenblock::STOP);
     } else {
-      blocks[STRECKENBLOCK_LENGTH-2].notifyContinue(Streckenblock::RUN);
+      blocks[STRECKENBLOCK_LENGTH-1].requestSwitchGreen(); //notifyContinue(Streckenblock::RUN);
     }
   }
 }

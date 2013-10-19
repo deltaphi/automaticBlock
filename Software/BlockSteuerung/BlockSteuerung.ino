@@ -39,6 +39,8 @@
 #include "LocoNetRequestQueue.h"
 #include "Streckenblock.h"
 
+#define DO_DEBUG
+
 #ifdef DO_DEBUG
 #define DEBUG(x) Serial.print(x)
 #else
@@ -111,8 +113,8 @@ void setup() {
   blocks[9] = Streckenblock(9, &lnReqQueue, 533, 534, 210);
   blocks[10] = Streckenblock(10, &lnReqQueue, 535, 536, 211);
   blocks[11] = Streckenblock(11, &lnReqQueue, 537, 538, 212);
-  blocks[12] = Streckenblock(12, &lnReqQueue, 539, 540, 213);
-  blocks[13] = Streckenblock(13, &lnReqQueue, 541, 542, 214);
+  blocks[12] = Streckenblock(12, &lnReqQueue, 541, 540, 213);
+  blocks[13] = Streckenblock(13, &lnReqQueue, 539, 542, 214);
   blocks[14] = Streckenblock(14, &lnReqQueue, 543, 544, 215);
   blocks[15] = Streckenblock(15, &lnReqQueue, 545, 546, 216);
   blocks[16] = Streckenblock(16, &lnReqQueue, 547, 548, 217);
@@ -163,4 +165,8 @@ void notifySwitchRequest( uint16_t Address, uint8_t Output, uint8_t Direction ) 
       blocks[STRECKENBLOCK_LENGTH-1].requestSwitchGreen(); //notifyContinue(Streckenblock::RUN);
     }
   }
+}
+
+void resetExitSignal(uint8_t blockID) {
+  lnReqQueue.postSwitchRequest(EXIT_SIGNAL, SWITCH_RED);
 }

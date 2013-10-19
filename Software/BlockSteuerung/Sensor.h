@@ -68,14 +68,14 @@ class Sensor {
       }
       
       if (newState != this->state) {
-		#ifdef SENSOR_H__DEBUG
+#ifdef SENSOR_H__DEBUG
         Serial.print("Sensor "); Serial.print(address); Serial.print(" is now ");
         if (OCCUPIED == newState) {
           Serial.print(" OCCUPIED.\n");
         } else {
           Serial.print(" FREE.\n");
         }
-		#endif
+#endif
         this->state = newState;
         return true;
       } else {

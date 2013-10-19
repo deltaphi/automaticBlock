@@ -38,6 +38,9 @@
 #include "Sensor.h"
 #include "LocoNetRequestQueue.h"
 
+#define DO_DEBUG
+#define STRECKENBLOCK_H__DEBUG
+
 #ifdef STRECKENBLOCK_H__DEBUG
 void printStreckenblockState();
 #endif

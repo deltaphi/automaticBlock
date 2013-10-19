@@ -42,6 +42,8 @@
 #define DEBUG2(x, y)
 #endif
 
+void resetExitSignal(uint8_t);
+
 bool Streckenblock::processSensorNotification(uint16_t Address, uint8_t State) {
   bool change(false);
   if (mainSensor.getAddress() == Address) {
@@ -67,6 +69,10 @@ bool Streckenblock::processSensorNotification(uint16_t Address, uint8_t State) {
         mainSensorOccupied();
       }
     }
+    
+#ifdef STRECKENBLOCK_H__DEBUG
+  printStreckenblockState();
+#endif
     return true;
   }
   if (frontSensor.getAddress() == Address) {
@@ -92,6 +98,10 @@ bool Streckenblock::processSensorNotification(uint16_t Address, uint8_t State) {
         frontSensorOccupied();
       }
     }
+    
+#ifdef STRECKENBLOCK_H__DEBUG
+  printStreckenblockState();
+#endif
     return true;
   }
   return false;
@@ -137,8 +147,6 @@ void Streckenblock::frontSensorOccupied() {
     } 
   } else 
     DEBUG(F("TRUE\n"));
-    
-  printStreckenblockState();
 }
 
 void Streckenblock::frontSensorFree() { 
@@ -166,9 +174,10 @@ void Streckenblock::trackFree() {
   frontSensorWasOccupied = false; // reset front sensor hysteresis
   requestSwitchGreen(); // turn on moving trains to the front
   
-#ifdef STRECKENBLOCK_H__DEBUG
-  printStreckenblockState();
-#endif
+  // Reset the exit signal to RED
+  if (after == NULL) {
+    resetExitSignal(id);
+  }
   
   if (before != NULL) {
     before->notifyAfterTrackIsFree(); // tell the before track that this one is now free

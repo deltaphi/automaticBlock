@@ -4,7 +4,7 @@
 
 #include <digitalWriteFast.h>
 
-//#define DO_DEBUG
+#define DO_DEBUG
 
 // Harware Version for Prototype
 #define HW_Ver 0x01
@@ -23,6 +23,12 @@
 
 #define sensorTimeThresholdFactor 10.0
 
+#ifdef DO_DEBUG
+#define DEBUG(x) Serial.print(x)
+#else
+#define DEBUG(x)
+#endif
+
 // Macro for reading a sensor value and possibly sending an update message
 #define UPDATE_SENSOR(stateArray, timeArray, timeThreshold, reportedArray, sensorIdx, tempVar, addrArray, currentTime) \
   (tempVar) = digitalReadFast(SENSOR_##sensorIdx); \
@@ -33,6 +39,8 @@
   if (((reportedArray)[(sensorIdx)] != (stateArray)[(sensorIdx)]) && ((currentTime) - (timeArray)[(sensorIdx)] > ((sensorTimeThresholdFactor) * sensorTimeThreshold))) { \
     LocoNet.reportSensor((addrArray)[(sensorIdx)], ((stateArray)[(sensorIdx)] == LOW ? HIGH : LOW)); \
     (reportedArray)[(sensorIdx)] = (stateArray)[(sensorIdx)]; \
+    DEBUG(sensorIdx); DEBUG(": "); \
+    DEBUG((stateArray)[(sensorIdx)] == LOW ? "HIGH\n" : "LOW\n"); \
   }
 
 // Macro to express whether var is in [lower, higher)

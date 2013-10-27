@@ -4,9 +4,9 @@
 
 #include <digitalWriteFast.h>
 
-#define DO_DEBUG
+//#define DO_DEBUG
 
-// Harware Version for Prototype
+// Hardware Version for Prototype
 #define HW_Ver 0x01
 // Hardware Version for HFD-2-L2 modules
 // #define HW_Ver 0x02
@@ -30,17 +30,19 @@
 #endif
 
 // Macro for reading a sensor value and possibly sending an update message
-#define UPDATE_SENSOR(stateArray, timeArray, timeThreshold, reportedArray, sensorIdx, tempVar, addrArray, currentTime) \
+#define UPDATE_SENSOR(stateArray, timeArray, occupiedTimeThreshold, freeTimeThreshold, reportedArray, sensorIdx, tempVar, addrArray, currentTime) \
   (tempVar) = digitalReadFast(SENSOR_##sensorIdx); \
   if ((stateArray)[(sensorIdx)] != (tempVar)) { \
     (stateArray)[(sensorIdx)] = (tempVar); \
     ((timeArray)[(sensorIdx)]) = currentTime; \
   } else \
-  if (((reportedArray)[(sensorIdx)] != (stateArray)[(sensorIdx)]) && ((currentTime) - (timeArray)[(sensorIdx)] > ((sensorTimeThresholdFactor) * sensorTimeThreshold))) { \
+  if (((reportedArray)[(sensorIdx)] != (stateArray)[(sensorIdx)]) && \
+      (((stateArray)[(sensorIdx)] == HIGH && ((currentTime) - (timeArray)[(sensorIdx)] > ((sensorTimeThresholdFactor) * sensorTimeThresholdFree))) || \
+      ((stateArray)[(sensorIdx)] == LOW && ((currentTime) - (timeArray)[(sensorIdx)] > ((sensorTimeThresholdFactor) * sensorTimeThresholdOccupied))))) { \
     LocoNet.reportSensor((addrArray)[(sensorIdx)], ((stateArray)[(sensorIdx)] == LOW ? HIGH : LOW)); \
     (reportedArray)[(sensorIdx)] = (stateArray)[(sensorIdx)]; \
     DEBUG(sensorIdx); DEBUG(": "); \
-    DEBUG((stateArray)[(sensorIdx)] == LOW ? "HIGH\n" : "LOW\n"); \
+    DEBUG((stateArray)[(sensorIdx)] == LOW ? "LOW\n" : "HIGH\n"); \
   }
 
 // Macro to express whether var is in [lower, higher)
@@ -80,7 +82,8 @@ unsigned long sensorStateTime[SENSOR_COUNT];
 uint8_t sensorStateReported[SENSOR_COUNT];
 
 // For how long does a sensor value have to be stable before we report it?
-uint8_t sensorTimeThreshold(0);
+uint8_t sensorTimeThresholdOccupied(0);
+uint8_t sensorTimeThresholdFree(0);
 // Value is in 10ms. I.e., a value of 50 would cause the code to wait for 500ms (1/2s) before reporting!
 
 //int8_t switchTimerId[SWITCH_COUNT];
@@ -211,18 +214,18 @@ void setup() {
   LocoNet.init(LOCONET_TX_PIN);
   
   // Initialize the sensor state
-	checkSensors();
+  checkSensors();
   
   if (reportInitial) {
     for (int i(0); i < SENSOR_COUNT; ++i) {
-			// To force a report, set to the opposite of what we currently see
-  	  sensorStateReported[i] = (sensorState[i] == LOW ? HIGH : LOW);
+      // To force a report, set to the opposite of what we currently see
+      sensorStateReported[i] = (sensorState[i] == LOW ? HIGH : LOW);
     }
   } else {
-  	for (int i(0); i < SENSOR_COUNT; ++i) {
-			// To suppress a report, set to the value we currently see
-  	  sensorStateReported[i] = sensorState[i];
-  	}
+    for (int i(0); i < SENSOR_COUNT; ++i) {
+      // To suppress a report, set to the value we currently see
+      sensorStateReported[i] = sensorState[i];
+    }
   }
   
 #ifdef DO_DEBUG
@@ -270,14 +273,14 @@ void checkSensors() {
    // check Sensors for modification and send out updates
   uint8_t tempVar;
   unsigned long now(millis());
-  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThreshold, sensorStateReported, 0, tempVar, sensorAddress, now);
-  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThreshold, sensorStateReported, 1, tempVar, sensorAddress, now);
-  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThreshold, sensorStateReported, 2, tempVar, sensorAddress, now);
-  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThreshold, sensorStateReported, 3, tempVar, sensorAddress, now);
-  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThreshold, sensorStateReported, 4, tempVar, sensorAddress, now);
-  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThreshold, sensorStateReported, 5, tempVar, sensorAddress, now);
-  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThreshold, sensorStateReported, 6, tempVar, sensorAddress, now);
-  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThreshold, sensorStateReported, 7, tempVar, sensorAddress, now);
+  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThresholdOccupied, sensorTimeThresholdFree, sensorStateReported, 0, tempVar, sensorAddress, now);
+  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThresholdOccupied, sensorTimeThresholdFree, sensorStateReported, 1, tempVar, sensorAddress, now);
+  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThresholdOccupied, sensorTimeThresholdFree, sensorStateReported, 2, tempVar, sensorAddress, now);
+  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThresholdOccupied, sensorTimeThresholdFree, sensorStateReported, 3, tempVar, sensorAddress, now);
+  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThresholdOccupied, sensorTimeThresholdFree, sensorStateReported, 4, tempVar, sensorAddress, now);
+  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThresholdOccupied, sensorTimeThresholdFree, sensorStateReported, 5, tempVar, sensorAddress, now);
+  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThresholdOccupied, sensorTimeThresholdFree, sensorStateReported, 6, tempVar, sensorAddress, now);
+  UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThresholdOccupied, sensorTimeThresholdFree, sensorStateReported, 7, tempVar, sensorAddress, now);
 }
 
 void loop() {
@@ -305,9 +308,13 @@ void loadLNCV() {
 
   reportInitial = EEPROM.readBit(3, 0);
 
-  sensorTimeThreshold = EEPROM.readByte(5);
-  if (sensorTimeThreshold == 0xFF) {
-    sensorTimeThreshold = 0;
+  sensorTimeThresholdFree = EEPROM.readByte(5);
+  sensorTimeThresholdOccupied = EEPROM.readByte(6);
+  if (sensorTimeThresholdFree == 0xFF) {
+    sensorTimeThresholdFree = 0;
+  }
+  if (sensorTimeThresholdOccupied == 0xFF) {
+    sensorTimeThresholdOccupied = 0;
   }
 
   // Load Sensor Addresses
@@ -336,7 +343,8 @@ void loadLNCV() {
 void resetLNCV() {
   moduleAddress = 0xFFFF;
   reportInitial = true;
-  sensorTimeThreshold = 0xFF;
+  sensorTimeThresholdFree = 0xFF;
+  sensorTimeThresholdOccupied = 0xFF;
   // Store Sensor Addresses
   for (int i(0); i < SENSOR_COUNT; ++i) {
     uint8_t lncvAddress(10 + (i*2));
@@ -358,7 +366,8 @@ void commitLNCV() {
   EEPROM.updateBit(3, 0, reportInitial);
   
   // Store reporting threshold
-  EEPROM.updateByte(5, sensorTimeThreshold);
+  EEPROM.updateByte(5, sensorTimeThresholdFree);
+  EEPROM.updateByte(6, sensorTimeThresholdOccupied);
   
   // Store Sensor Addresses
   for (int i(0); i < SENSOR_COUNT; ++i) {
@@ -406,7 +415,11 @@ int8_t notifyLNCVread( uint16_t ArtNr, uint16_t lncvAddress, uint16_t, uint16_t 
         return LNCV_LACK_OK;
     } else if (lncvAddress == 2) {
         // reporting threshold
-        lncvValue = sensorTimeThreshold;
+        lncvValue = sensorTimeThresholdFree;
+        return LNCV_LACK_OK;
+    } else if (lncvAddress == 3) {
+        // reporting threshold
+        lncvValue = sensorTimeThresholdOccupied;
         return LNCV_LACK_OK;
     } else if (IS_IN_RANGE(10, lncvAddress, 18)) {
       lncvValue = sensorAddress[lncvAddress - 10];
@@ -464,7 +477,15 @@ int8_t notifyLNCVwrite( uint16_t ArtNr, uint16_t lncvAddress, uint16_t lncvValue
     } else if (lncvAddress == 2) {
         // reporting threshold
         if (IS_IN_RANGE(0, lncvValue, 254)) {
-          sensorTimeThreshold = lncvValue;
+          sensorTimeThresholdFree = lncvValue;
+          return LNCV_LACK_OK;
+        } else {
+          return LNCV_LACK_ERROR_OUTOFRANGE;
+        }
+    } else if (lncvAddress == 3) {
+        // reporting threshold
+        if (IS_IN_RANGE(0, lncvValue, 254)) {
+          sensorTimeThresholdOccupied = lncvValue;
           return LNCV_LACK_OK;
         } else {
           return LNCV_LACK_ERROR_OUTOFRANGE;

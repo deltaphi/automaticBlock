@@ -69,21 +69,27 @@ class Streckenblock {
     void mainSensorFree();
     /* Handling the track becoming free */
     void trackFree();
+    
+    void actExitSignalRequestedState();
+    uint8_t exitSignalRequestedState;
 
 public:
     void requestSwitchRed();
     void requestSwitchGreen();
 
-protected:
+    /* Handling the state of the exit signal */
+    void notifyExitSignalSwitchRequest(uint8_t state);
+
     uint8_t getId() const { return id; }
 
-  public:
     Streckenblock(): id(-1), lnReqQueue(NULL), mainSensor(0), frontSensor(0), switchAddress(0),
-                      before(NULL), after(NULL), continueBit(false), frontSensorWasOccupied(false) {}
+                      before(NULL), after(NULL), continueBit(false), frontSensorWasOccupied(false),
+                      exitSignalRequestedState(SWITCH_RED) {}
     
     Streckenblock(int id, LocoNetRequestQueue * lnReqQueue, uint16_t mainSensorAddress, uint16_t frontSensorAddress, uint16_t switchAddress):
         id(id), lnReqQueue(lnReqQueue), mainSensor(mainSensorAddress), frontSensor(frontSensorAddress), switchAddress(switchAddress),
-        before(NULL), after(NULL), continueBit(false), frontSensorWasOccupied(false) {}
+        before(NULL), after(NULL), continueBit(false), frontSensorWasOccupied(false),
+        exitSignalRequestedState(SWITCH_RED) {}
     
   ~Streckenblock() { before = NULL; after = NULL; lnReqQueue = NULL; };
     

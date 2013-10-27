@@ -124,6 +124,10 @@ void setup() {
     blocks[i].setAfter(&blocks[i+1]);
   }
   
+  // Force the exit signal to RED
+  blocks[STRECKENBLOCK_LENGTH - 1].notifyExitSignalSwitchRequest(SWITCH_RED);
+  reportExitSignal(blocks[STRECKENBLOCK_LENGTH - 1].getId(), SWITCH_RED);
+  
 #ifdef DO_DEBUG
   printStreckenblockState();
 #endif
@@ -158,15 +162,24 @@ void notifySensor( uint16_t Address, uint8_t State ) {
 void notifySwitchRequest( uint16_t Address, uint8_t Output, uint8_t Direction ) {
   // If this was the exit signal and it was set to green, send this through the Steckenblocks
   if (Address == EXIT_SIGNAL) {
+    DEBUG(F("External Switch request: "));
     // last block does not have to do anything
     if (SWITCH_RED == Direction) {
-      blocks[STRECKENBLOCK_LENGTH-1].requestSwitchRed(); //notifyContinue(Streckenblock::STOP);
+      DEBUG(F("RED\n"));
+      blocks[STRECKENBLOCK_LENGTH-1].notifyExitSignalSwitchRequest(SWITCH_RED);
     } else {
-      blocks[STRECKENBLOCK_LENGTH-1].requestSwitchGreen(); //notifyContinue(Streckenblock::RUN);
+      DEBUG(F("GREEN\n"));
+      blocks[STRECKENBLOCK_LENGTH-1].notifyExitSignalSwitchRequest(SWITCH_GREEN);
     }
   }
 }
 
-void resetExitSignal(uint8_t blockID) {
-  lnReqQueue.postSwitchRequest(EXIT_SIGNAL, SWITCH_RED);
+void reportExitSignal(uint8_t blockID, uint8_t state) {
+  DEBUG(F("Reporting Exit Signal "));
+  DEBUG(EXIT_SIGNAL);
+  DEBUG(" ");
+  DEBUG(state);
+  DEBUG("\n");
+  lnReqQueue.postSwitchRequest(EXIT_SIGNAL, state);
+  //LocoNet.sendSwitchReport(EXIT_SIGNAL - 1, state);
 }

@@ -42,7 +42,7 @@
 #define DEBUG2(x, y)
 #endif
 
-void resetExitSignal(uint8_t);
+void reportExitSignal(uint8_t, uint8_t);
 
 bool Streckenblock::processSensorNotification(uint16_t Address, uint8_t State) {
   bool change(false);
@@ -126,7 +126,7 @@ void Streckenblock::frontSensorOccupied() {
     if (after == NULL) {
       DEBUG(F("After is NULL\n"));
       // Last block. stop the train.
-      requestSwitchRed();
+      actExitSignalRequestedState();
       // Set continue bit, "next" block now has full control over the train.
       //continueBit = true;
     } else {
@@ -176,7 +176,8 @@ void Streckenblock::trackFree() {
   
   // Reset the exit signal to RED
   if (after == NULL) {
-    resetExitSignal(id);
+    exitSignalRequestedState = SWITCH_RED;
+    reportExitSignal(id, SWITCH_RED);
   }
   
   if (before != NULL) {
@@ -214,10 +215,30 @@ void Streckenblock::requestSwitchGreen() {
   }
 }
 
-
 void Streckenblock::requestSwitchRed() {
   lnReqQueue->postSwitchRequest(switchAddress, SWITCH_RED);
   if (before != NULL) {
     before->notifyContinue(STOP);
+  }
+}
+
+void Streckenblock::notifyExitSignalSwitchRequest(uint8_t state) {
+  if (after != NULL) {
+    return;
+  }
+  
+  exitSignalRequestedState = state;
+  
+  actExitSignalRequestedState();
+}
+
+void Streckenblock::actExitSignalRequestedState() {
+  if ((after == NULL) && frontSensorWasOccupied && !isFree()) {
+    // Track is occupied, react.
+    if (exitSignalRequestedState == SWITCH_RED) {
+      requestSwitchRed();
+    } else {
+      requestSwitchGreen();
+    }
   }
 }

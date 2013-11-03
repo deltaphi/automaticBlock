@@ -11,6 +11,8 @@
 // define what Arduino pins serve as which function on this hardware
 // Give the arduino pin number. comments contain the atmel port and the pin on the DIL-28 package
 
+// Comments: AVR Pin Name and DIL28 Pin Number
+
 #define SENSOR_COUNT 8
 #define SENSOR_0 (A5) // PC5, 28
 #define SENSOR_1 (A4) // PC4, 27
@@ -74,6 +76,20 @@
 #define SWITCH_2_GN (5)  // PD5, 11
 #define SWITCH_3_RT (3)  // PD3,  5
 #define SWITCH_3_GN (2)  // PD2,  4
+
+#elif (HW_Ver == 4)
+
+#define SENSOR_COUNT 0
+
+#define SWITCH_COUNT 4
+#define SWITCH_0_RT (2) // PD2, 4
+#define SWITCH_0_GN (3) // PD3, 5
+#define SWITCH_1_RT (4) // PD4, 6
+#define SWITCH_1_GN (5)  // PD5, 11
+#define SWITCH_2_RT (6)  // PD6, 12
+#define SWITCH_2_GN (A3)  // PC3, 26
+#define SWITCH_3_RT (A5)  // PC5, 28
+#define SWITCH_3_GN (A4)  // PC4, 27
 
 #endif
 

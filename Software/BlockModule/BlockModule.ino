@@ -12,6 +12,9 @@
 // #define HW_Ver 0x02
 // Hardware Version for HFD-3-L2 modules
 // #define HW_Ver 0x03
+// Hardware version for Turnout modules
+// #define HW_Ver 0x04
+
 // include HW_Ver before this!
 #include "hw_config.h"
 
@@ -19,7 +22,11 @@
 #define SW_VER 0x00
 
 // maximum time any relay coil is active in milliseconds
+#if (HW_Ver == 4)
+#define SWITCH_ACTIVE_TIME_MS 250
+#else
 #define SWITCH_ACTIVE_TIME_MS 50
+#endif
 
 #define sensorTimeThresholdFactor 10.0
 
@@ -118,14 +125,30 @@ void loadLNCV();
 
 void setupPinMode() {
   {
-  pinModeFast(SENSOR_0, INPUT);
+  #if (SENSOR_COUNT > 0)
+    pinModeFast(SENSOR_0, INPUT);
+  #endif
+  #if (SENSOR_COUNT > 1)
   pinModeFast(SENSOR_1, INPUT);
+  #endif
+  #if (SENSOR_COUNT > 2)
   pinModeFast(SENSOR_2, INPUT);
+  #endif
+  #if (SENSOR_COUNT > 3)
   pinModeFast(SENSOR_3, INPUT);
+  #endif
+  #if (SENSOR_COUNT > 4)
   pinModeFast(SENSOR_4, INPUT);
+  #endif
+  #if (SENSOR_COUNT > 5)
   pinModeFast(SENSOR_5, INPUT);
+  #endif
+  #if (SENSOR_COUNT > 6)
   pinModeFast(SENSOR_6, INPUT);
+  #endif
+  #if (SENSOR_COUNT > 7)
   pinModeFast(SENSOR_7, INPUT);
+  #endif
   }
 
   {
@@ -273,14 +296,30 @@ void checkSensors() {
    // check Sensors for modification and send out updates
   uint8_t tempVar;
   unsigned long now(millis());
+  #if (SENSOR_COUNT > 0)
   UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThresholdOccupied, sensorTimeThresholdFree, sensorStateReported, 0, tempVar, sensorAddress, now);
+  #endif
+  #if (SENSOR_COUNT > 1)
   UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThresholdOccupied, sensorTimeThresholdFree, sensorStateReported, 1, tempVar, sensorAddress, now);
+  #endif
+  #if (SENSOR_COUNT > 2)
   UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThresholdOccupied, sensorTimeThresholdFree, sensorStateReported, 2, tempVar, sensorAddress, now);
+  #endif
+  #if (SENSOR_COUNT > 3)
   UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThresholdOccupied, sensorTimeThresholdFree, sensorStateReported, 3, tempVar, sensorAddress, now);
+  #endif
+  #if (SENSOR_COUNT > 4)
   UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThresholdOccupied, sensorTimeThresholdFree, sensorStateReported, 4, tempVar, sensorAddress, now);
+  #endif
+  #if (SENSOR_COUNT > 5)
   UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThresholdOccupied, sensorTimeThresholdFree, sensorStateReported, 5, tempVar, sensorAddress, now);
+  #endif
+  #if (SENSOR_COUNT > 6)
   UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThresholdOccupied, sensorTimeThresholdFree, sensorStateReported, 6, tempVar, sensorAddress, now);
+  #endif
+  #if (SENSOR_COUNT > 7)
   UPDATE_SENSOR(sensorState, sensorStateTime, sensorTimeThresholdOccupied, sensorTimeThresholdFree, sensorStateReported, 7, tempVar, sensorAddress, now);
+  #endif
 }
 
 void loop() {

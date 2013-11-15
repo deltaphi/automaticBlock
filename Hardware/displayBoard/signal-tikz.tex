@@ -1,0 +1,207 @@
+\documentclass{scrartcl}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[ngerman]{babel}
+\usepackage[a4paper,landscape,margin=1cm]{geometry}
+
+\usepackage{tikz}
+
+\usetikzlibrary{calc}
+
+\begin{document}
+
+\newlength{\ledHoleSize}
+\newlength{\ledOuterSize}
+\setlength{\ledHoleSize}{4.5mm}
+\setlength{\ledOuterSize}{\ledHoleSize}
+\addtolength{\ledOuterSize}{1.5mm}
+
+\newlength{\signalLedDistance}
+\setlength{\signalLedDistance}{\ledOuterSize}
+\addtolength{\signalLedDistance}{2mm}
+
+\newlength{\blockIntraLength}
+\setlength{\blockIntraLength}{1cm}
+\newlength{\blockEndLength}
+\setlength{\blockEndLength}{0.5cm}
+
+\newlength{\blockLineWidth}
+\setlength{\blockLineWidth}{1mm}
+
+\def\led#1{
+\begin{scope}[shift={#1}]
+\draw (0, 0) node[circle,draw,fill=black,minimum size=\ledOuterSize] (led) {};
+\draw (led) node[circle,draw,fill=white,minimum size=\ledHoleSize] {};
+\draw(0,0.5\ledHoleSize) -- (0,-0.5\ledHoleSize);
+\draw(0.5\ledHoleSize,0) -- (-0.5\ledHoleSize,0);
+\end{scope}}
+
+\def\signal#1#2#3{
+\begin{scope}[shift={#1}, rotate=#2, transform shape]
+%\draw (0, 0) node[circle,draw,fill=black,minimum size=\ledOuterSize] (red) {};
+%\draw (0, -\signalLedDistance) node[circle,draw,fill=black,minimum size=\ledOuterSize] (green) {};
+\draw (0,-0.5\signalLedDistance) node[rectangle,draw,fill=black,minimum width=\ledOuterSize, minimum height = \signalLedDistance] {};
+\draw (0,-1.4\signalLedDistance) node[rectangle,draw,fill=black,minimum width=0.3\ledOuterSize, minimum height=0.3\ledOuterSize,inner sep=0pt] {};
+\draw (0,-1.6\signalLedDistance) node[rectangle,draw,fill=black,minimum width=0.8\ledOuterSize, minimum height=0.3\ledOuterSize,inner sep=0pt] {};
+\draw (0,-2\signalLedDistance) node {#3};
+
+\led{(0,0)};
+\led{(0, -\signalLedDistance)};
+\end{scope}}
+
+% DONE: Signal-Shape
+
+% TODO: Strecken-Shape mit shift, length, rotation
+% TODO: Strecken-Shape mit Knick und Biegung
+% TODO: Weichen-Shape mit {Kippschalter, Taster} und {mit, ohne} LED
+
+% parameter 3 ist die gesamtlänge
+\def\geradeStrecke#1#2{
+\begin{scope}[shift={#1}, rotate=#2, transform shape]
+
+\draw [line width=1mm] (0cm,0cm) node[blocksep] (start) {} -- 
+++(0cm,1cm) node (led1) {} --
+++(0cm,1cm) node (led2) {} --
+%++(0cm,1cm) node (led3) {} --
+++(0cm,1cm) node[blocksep] (end) {};
+
+\led{(led1)}
+\led{(led2)}
+%\led{(led3)}
+
+\signal{(1cm,2.5cm)}
+
+\end{scope}}
+
+\begin{figure}
+\centering
+\begin{tikzpicture}
+
+\tikzset{blocksep/.style={rectangle,draw,fill=black,minimum width=5mm, minimum height=1mm,inner sep=0pt}}
+
+%\geradeStrecke{(0cm,-10cm)}{0}
+%\geradeStrecke{(0cm,-7cm)}{0}
+%\geradeStrecke{(0cm,-3cm)}{45}
+%\geradeStrecke{(-3.5cm,-0.5cm)}{90}
+%\geradeStrecke{(-6.5cm,-0.5cm)}{120}
+%\geradeStrecke{(-9cm,-2cm)}{90}
+%\geradeStrecke{(-12cm,-2cm)}{90}
+%\geradeStrecke{(-15cm,-2cm)}{90}
+%\geradeStrecke{(-18cm,-3.5cm)}{270}
+%
+%\geradeStrecke{(-19cm,-4cm)}{180}
+%\geradeStrecke{(-17cm,-7cm)}{315}
+%
+%\geradeStrecke{(-15cm,-3.5cm)}{270}
+%\geradeStrecke{(-12cm,-3.5cm)}{270}
+%\geradeStrecke{(-9cm,-3.5cm)}{300}
+%\geradeStrecke{(-6.5cm,-2cm)}{270}
+%
+%\geradeStrecke{(-3cm,-2cm)}{225}
+%
+%\geradeStrecke{(-1cm,-4cm)}{180}
+%\geradeStrecke{(-1cm,-7cm)}{180}
+
+\draw[line width=\blockLineWidth] (0cm,-10cm) node[blocksep] (b1start) {} --++ (0,\blockIntraLength) node (b1l1) {} --++ (0,\blockIntraLength) node (b1l2) {}
+--++ (0,\blockEndLength) node[blocksep] (b2start) {} --++ (0,\blockIntraLength) node (b2l1) {} --++ (0,\blockIntraLength) node (b2l2) {}
+
+--++ (0,\blockEndLength) node[blocksep] (b3start) {} --++ (0,1.5cm) node {} --++ (-1cm,1cm) node (b3l1) {} --++ (-1cm,1cm) node {} --++ (-1cm,0cm) node (b3l2) {}
+
+--++ (-1\blockEndLength,0) node[blocksep,rotate=90] (b4start) {} --++ (-1\blockIntraLength,0) node (b4l1) {} --++ (-1\blockIntraLength,0) node (b4l2) {}
+
+--++ (-1\blockEndLength,0) node[blocksep,rotate=90] (b5start) {} --++ (-0.75\blockIntraLength,0) node {} --++ (-0.5cm,-0.5) node (b5l1) {} --++ (-0.5,-0.5) node {} --++  (-0.75\blockIntraLength,0) node (b5l2) {}
+
+--++ (-1\blockEndLength,0) node[blocksep,rotate=90] (b6start) {} --++ (-1\blockIntraLength,0) node (b6l1) {} --++ (-1\blockIntraLength,0) node (b6l2) {}
+--++ (-1\blockEndLength,0) node[blocksep,rotate=90] (b7start) {} --++ (-1\blockIntraLength,0) node (b7l1) {} --++ (-1\blockIntraLength,0) node (b7l2) {}
+--++ (-1\blockEndLength,0) node[blocksep,rotate=90] (b8start) {} --++ (-1\blockIntraLength,0) node (b8l1) {} --++ (-1\blockIntraLength,0) node (b8l2) {}
+
+--++ (-2\blockEndLength,0) node[blocksep,rotate=90] (b9start) {} --++ (-0.5\blockIntraLength,0) node {} --++ (-0.5cm,-0.5cm) node {} --++ (0,-1cm) node (b9l1) {} --++ (0,-1cm) node {} --++ (0.5,-0.5) node {} --++ (0.5cm,0) node (b9l2) {}
+
+--++ (\blockEndLength,0) node[blocksep,rotate=90] (b10start) {} --++ (\blockIntraLength,0) node (b10l1) {}
+%;
+
+
+% -- ($ (b10l1)!0.6!(b12start) $) node (b10l2) {}
+%\draw[line width=\blockLineWidth]  
+-- ($ (b8start) + (0,-1cm)$ ) node[blocksep,rotate=90] (b12start) {} --++ (\blockIntraLength,0) node (b12l1) {} --++ (1cm,0) node (b12l2) {}
+
+--++ (\blockEndLength,0) node[blocksep,rotate=90] (b13start) {} --++ (\blockIntraLength,0) node (b13l1) {} --++ (\blockIntraLength,0) node (b13l2) {}
+--++ (\blockEndLength,0) node[blocksep,rotate=90] (b14start) {} --++ (\blockIntraLength,0) node (b14l1) {} --++ (0.5cm,0) node {} --++ (0.75,0.75cm) node (b14l2) {} --++ (0.25cm,0.25) node {}
+
+--++ (\blockEndLength,0) node[blocksep,rotate=90] (b15start) {} --++ (\blockIntraLength,0) node (b15l1) {} --++ (\blockIntraLength,0) node (b15l2) {}
+
+--++ (\blockEndLength,0) node[blocksep,rotate=90] (b16start) {} --++ (1,0) node {} --++ (0.75cm,-0.75cm) node (b16l1) {} --++ (0.75,-0.75) node {} --++ (0,-0.5\blockIntraLength) node (b16l2) {}
+
+--++ (0,-1\blockEndLength) node[blocksep,rotate=180] (b17start) {} --++ (0,-1\blockIntraLength) node (b17l1) {} --++ (0,-1\blockIntraLength) node (b17l2) {}
+--++ (0,-1\blockEndLength) node[blocksep,rotate=180] (b18start) {} --++ (0,-1\blockIntraLength) node (b18l1) {} --++ (0,-1\blockIntraLength) node (b18l2) {}
+--++ (0,-0.5cm) node[blocksep,rotate=180] (b19start) {} 
+;
+
+%\draw[line width=\blockLineWidth] (b10l1) -- ($ (b10l1)!0.6!(b12start) $) node (b10l2) {} -- (b12start);
+%\draw[line width=\blockLineWidth] (b10l1) -- ($ (b10l1)!0.6!(b12start) $) node (b10l2) {} -- (b12start);
+
+\draw[line width=\blockLineWidth] (b9start) --++ (\blockIntraLength,-1\blockIntraLength) node (b11l1) {} --++ (1,0) node (b11l2) {} -- (b12start);
+
+\led{(b1l1)}
+\led{(b1l2)}
+\signal{($ (b2start) + (1cm,-0.5cm) $)}{0}{200}
+\led{(b2l1)}
+\led{(b2l2)}
+\signal{($ (b3start) + (1cm,-0.5cm) $)}{0}{201}
+\led{(b3l1)}
+\led{(b3l2)}
+\signal{($ (b4start) + (0.5cm,1cm) $)}{90}{202}
+\led{(b4l1)}
+\led{(b4l2)}
+\signal{($ (b5start) + (0.5cm,1cm) $)}{90}{203}
+\led{(b5l1)}
+\led{(b5l2)}
+\signal{($ (b6start) + (0.75cm,1cm) $)}{135}{204}
+\led{(b6l1)}
+\led{(b6l2)}
+\signal{($ (b7start) + (0.5cm,1cm) $)}{90}{205}
+\led{(b7l1)}
+\led{(b7l2)}
+\signal{($ (b8start) + (0.5cm,1cm) $)}{90}{206}
+\led{(b8l1)}
+\led{(b8l2)}
+\signal{($ (b9start) + (0.5cm,1cm) $)}{90}{207}
+\led{(b9l1)}
+\led{(b9l2)}
+\signal{($ (b10start) + (-0.5cm,-1cm) $)}{270}{208}
+\led{(b10l1)}
+%\led{(b10l2)}
+\led{($ (b10l1)!0.6!(b12start) $)}
+\signal{($ (b12start) + (-1.5cm,-0.75cm) $)}{270}{209}
+\led{(b11l1)}
+\led{(b11l2)}
+\signal{($ (b12start) + (-0.2cm,-1.6cm) $)}{322}{210}
+\led{(b12l1)}
+\led{(b12l2)}
+\signal{($ (b13start) + (-0.5cm,-1cm) $)}{270}{211}
+\led{(b13l1)}
+\led{(b13l2)}
+\signal{($ (b14start) + (-0.5cm,-1cm) $)}{270}{212}
+\led{(b14l1)}
+\led{(b14l2)}
+\signal{($ (b15start) + (-0.25cm,-1cm) $)}{315}{213}
+\led{(b15l1)}
+\led{(b15l2)}
+\signal{($ (b16start) + (-0.5cm,-1cm) $)}{270}{214}
+\led{(b16l1)}
+\led{(b16l2)}
+\signal{($ (b17start) + (-1cm,0.25cm) $)}{225}{215}
+\led{(b17l1)}
+\led{(b17l2)}
+\signal{($ (b18start) + (-1cm,0.5cm) $)}{180}{216}
+\led{(b18l1)}
+\led{(b18l2)}
+\signal{($ (b19start) + (-1cm,0.5cm) $)}{180}{217}
+
+\draw (2cm,1cm) node {} --++ (-21cm,0)  node {} --++ (0,-12.5cm)  node {} --++ (21cm,0)  node {} -- cycle;
+
+\end{tikzpicture}
+\end{figure}
+
+\end{document}

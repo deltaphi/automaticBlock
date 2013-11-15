@@ -17,6 +17,12 @@
 \setlength{\ledOuterSize}{\ledHoleSize}
 \addtolength{\ledOuterSize}{1.5mm}
 
+\newlength{\buttonHoleSize}
+\newlength{\buttonOuterSize}
+\setlength{\buttonHoleSize}{6.5mm}
+\setlength{\buttonOuterSize}{\buttonHoleSize}
+\addtolength{\buttonOuterSize}{1.5mm}
+
 \newlength{\signalLedDistance}
 \setlength{\signalLedDistance}{\ledOuterSize}
 \addtolength{\signalLedDistance}{2mm}
@@ -28,6 +34,14 @@
 
 \newlength{\blockLineWidth}
 \setlength{\blockLineWidth}{1mm}
+
+\def\button#1{
+\begin{scope}[shift={#1}]
+\draw (0, 0) node[circle,draw,fill=black,minimum size=\buttonOuterSize] (button) {};
+\draw (button) node[circle,draw,fill=white,minimum size=\buttonHoleSize] {};
+\draw(0,0.5\buttonHoleSize) -- (0,-0.5\buttonHoleSize);
+\draw(0.5\buttonHoleSize,0) -- (-0.5\buttonHoleSize,0);
+\end{scope}}
 
 \def\led#1{
 \begin{scope}[shift={#1}]
@@ -74,9 +88,11 @@
 
 \end{scope}}
 
+
+
 \begin{figure}
 \centering
-\begin{tikzpicture}
+\begin{tikzpicture}[font=\sffamily]
 
 \tikzset{blocksep/.style={rectangle,draw,fill=black,minimum width=5mm, minimum height=1mm,inner sep=0pt}}
 
@@ -199,6 +215,20 @@
 \led{(b18l2)}
 \signal{($ (b19start) + (-1cm,0.5cm) $)}{180}{217}
 
+%
+% Buttons for station entry
+%
+
+\draw (-5,-8.5) node (Hp0) {\huge{\textsf{Hp0}}};
+\draw ($ (Hp0) + (1.8\buttonOuterSize,0) $) node (Hp2) {\huge{Hp2}};
+
+\button{($ (Hp2) + (0, -1) $)}
+\button{($ (Hp0) + (0, -1) $)}
+
+\led{($ (Hp2) + (0, +1) $)}
+\led{($ (Hp0) + (0, +1) $)}
+
+% Outer delimiter
 \draw (2cm,1cm) node {} --++ (-21cm,0)  node {} --++ (0,-12.5cm)  node {} --++ (21cm,0)  node {} -- cycle;
 
 \end{tikzpicture}

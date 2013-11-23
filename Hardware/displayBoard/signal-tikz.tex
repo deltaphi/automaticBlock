@@ -3,7 +3,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[ngerman]{babel}
-\usepackage[a4paper,landscape,margin=1cm]{geometry}
+\usepackage[a4paper,landscape,margin=0cm]{geometry}
 
 \usepackage{tikz}
 
@@ -15,7 +15,7 @@
 \newlength{\ledOuterSize}
 \setlength{\ledHoleSize}{4.5mm}
 \setlength{\ledOuterSize}{\ledHoleSize}
-\addtolength{\ledOuterSize}{1.5mm}
+\addtolength{\ledOuterSize}{0.5mm}
 
 \newlength{\buttonHoleSize}
 \newlength{\buttonOuterSize}
@@ -28,9 +28,9 @@
 \addtolength{\signalLedDistance}{2mm}
 
 \newlength{\blockIntraLength}
-\setlength{\blockIntraLength}{1cm}
+\setlength{\blockIntraLength}{1.25cm}
 \newlength{\blockEndLength}
-\setlength{\blockEndLength}{0.5cm}
+\setlength{\blockEndLength}{0.75cm}
 
 \newlength{\blockLineWidth}
 \setlength{\blockLineWidth}{1mm}
@@ -88,13 +88,20 @@
 
 \end{scope}}
 
+\def\drillingHole#1#2{
+\begin{scope}[shift={#1}]
+\draw (0,0) node[circle,draw,minimum size=#2, inner sep=0] {};
+\draw (0,-0.5#2) -- (0,0.5#2);
+\draw (-0.5#2,0) -- (0.5#2,0);
+\end{scope}
+}
 
 
 \begin{figure}
 \centering
 \begin{tikzpicture}[font=\sffamily]
 
-\tikzset{blocksep/.style={rectangle,draw,fill=black,minimum width=5mm, minimum height=1mm,inner sep=0pt}}
+\tikzset{blocksep/.style={rectangle,draw,fill=black,minimum width=5mm, minimum height=0.1mm,inner sep=0pt}}
 
 %\geradeStrecke{(0cm,-10cm)}{0}
 %\geradeStrecke{(0cm,-7cm)}{0}
@@ -119,45 +126,46 @@
 %\geradeStrecke{(-1cm,-4cm)}{180}
 %\geradeStrecke{(-1cm,-7cm)}{180}
 
-\draw[line width=\blockLineWidth] (0cm,-10cm) node[blocksep] (b1start) {} --++ (0,\blockIntraLength) node (b1l1) {} --++ (0,\blockIntraLength) node (b1l2) {}
+\draw[line width=\blockLineWidth] (-2cm,-12cm) node[blocksep] (b1start) {} --++ (0,\blockIntraLength) node (b1l1) {} --++ (0,\blockIntraLength) node (b1l2) {}
 --++ (0,\blockEndLength) node[blocksep] (b2start) {} --++ (0,\blockIntraLength) node (b2l1) {} --++ (0,\blockIntraLength) node (b2l2) {}
 
 --++ (0,\blockEndLength) node[blocksep] (b3start) {} --++ (0,1.5cm) node {} --++ (-1cm,1cm) node (b3l1) {} --++ (-1cm,1cm) node {} --++ (-1cm,0cm) node (b3l2) {}
 
 --++ (-1\blockEndLength,0) node[blocksep,rotate=90] (b4start) {} --++ (-1\blockIntraLength,0) node (b4l1) {} --++ (-1\blockIntraLength,0) node (b4l2) {}
 
---++ (-1\blockEndLength,0) node[blocksep,rotate=90] (b5start) {} --++ (-0.75\blockIntraLength,0) node {} --++ (-0.5cm,-0.5) node (b5l1) {} --++ (-0.5,-0.5) node {} --++  (-0.75\blockIntraLength,0) node (b5l2) {}
+--++ (-1\blockEndLength,0) node[blocksep,rotate=90] (b5start) {} --++ (-0.75\blockIntraLength,0) node {} --++ (-0.4\blockIntraLength,-0.4\blockIntraLength) node (b5l1) {} --++ (-0.6\blockIntraLength,-0.6\blockIntraLength) node {} --++  (-0.5\blockIntraLength,0) node (b5l2) {}
 
 --++ (-1\blockEndLength,0) node[blocksep,rotate=90] (b6start) {} --++ (-1\blockIntraLength,0) node (b6l1) {} --++ (-1\blockIntraLength,0) node (b6l2) {}
 --++ (-1\blockEndLength,0) node[blocksep,rotate=90] (b7start) {} --++ (-1\blockIntraLength,0) node (b7l1) {} --++ (-1\blockIntraLength,0) node (b7l2) {}
 --++ (-1\blockEndLength,0) node[blocksep,rotate=90] (b8start) {} --++ (-1\blockIntraLength,0) node (b8l1) {} --++ (-1\blockIntraLength,0) node (b8l2) {}
 
---++ (-2\blockEndLength,0) node[blocksep,rotate=90] (b9start) {} --++ (-0.5\blockIntraLength,0) node {} --++ (-0.5cm,-0.5cm) node {} --++ (0,-1cm) node (b9l1) {} --++ (0,-1cm) node {} --++ (0.5,-0.5) node {} --++ (0.5cm,0) node (b9l2) {}
+--++ (-2\blockEndLength,0) node[blocksep,rotate=90] (b9start) {} --++ (-0.5\blockIntraLength,0) node {} --++ (-0.5\blockIntraLength,-0.5\blockIntraLength) node {} --++ (0,-1\blockIntraLength) node (b9l1) {} --++ (0,-1\blockIntraLength) node {} --++ (0.5\blockIntraLength,-0.5\blockIntraLength) node {} --++ (0.5\blockIntraLength,0) node (b9l2) {}
 
 --++ (\blockEndLength,0) node[blocksep,rotate=90] (b10start) {} --++ (\blockIntraLength,0) node (b10l1) {}
-%;
 
-
-% -- ($ (b10l1)!0.6!(b12start) $) node (b10l2) {}
-%\draw[line width=\blockLineWidth]  
--- ($ (b8start) + (0,-1cm)$ ) node[blocksep,rotate=90] (b12start) {} --++ (\blockIntraLength,0) node (b12l1) {} --++ (1cm,0) node (b12l2) {}
+-- ($ (b8start) + (0,-1\blockIntraLength)$ ) node[blocksep,rotate=90] (b12start) {} --++ (\blockIntraLength,0) node (b12l1) {} --++ (\blockIntraLength,0) node (b12l2) {}
 
 --++ (\blockEndLength,0) node[blocksep,rotate=90] (b13start) {} --++ (\blockIntraLength,0) node (b13l1) {} --++ (\blockIntraLength,0) node (b13l2) {}
---++ (\blockEndLength,0) node[blocksep,rotate=90] (b14start) {} --++ (\blockIntraLength,0) node (b14l1) {} --++ (0.5cm,0) node {} --++ (0.75,0.75cm) node (b14l2) {} --++ (0.25cm,0.25) node {}
+--++ (\blockEndLength,0) node[blocksep,rotate=90] (b14start) {} --++ (0.75\blockIntraLength,0) node (b14l1) {} --++ (0.5\blockIntraLength,0) node {} --++ (0.6\blockIntraLength,0.6\blockIntraLength) node (b14l2) {} --++ (0.4\blockIntraLength,0.4\blockIntraLength) node {}
 
 --++ (\blockEndLength,0) node[blocksep,rotate=90] (b15start) {} --++ (\blockIntraLength,0) node (b15l1) {} --++ (\blockIntraLength,0) node (b15l2) {}
 
---++ (\blockEndLength,0) node[blocksep,rotate=90] (b16start) {} --++ (1,0) node {} --++ (0.75cm,-0.75cm) node (b16l1) {} --++ (0.75,-0.75) node {} --++ (0,-0.5\blockIntraLength) node (b16l2) {}
+--++ (\blockEndLength,0) node[blocksep,rotate=90] (b16start) {} --++ (\blockIntraLength,0) node {} --++ (0.5\blockIntraLength,-0.5\blockIntraLength) node (b16l1) {} --++ (0.5\blockIntraLength,-0.5\blockIntraLength) node {} --++ 
+(0,-0.5\blockEndLength) 
+node (b16l2) {}
 
---++ (0,-1\blockEndLength) node[blocksep,rotate=180] (b17start) {} --++ (0,-1\blockIntraLength) node (b17l1) {} --++ (0,-1\blockIntraLength) node (b17l2) {}
+--
+%(0,-1\blockEndLength) 
+($ (b3start) - (\blockIntraLength,0) $)
+node[blocksep,rotate=180] (b17start) {} --++ (0,-1\blockIntraLength) node (b17l1) {} --++ (0,-1\blockIntraLength) node (b17l2) {}
 --++ (0,-1\blockEndLength) node[blocksep,rotate=180] (b18start) {} --++ (0,-1\blockIntraLength) node (b18l1) {} --++ (0,-1\blockIntraLength) node (b18l2) {}
---++ (0,-0.5cm) node[blocksep,rotate=180] (b19start) {} 
+--++ (0,-1\blockEndLength) node[blocksep,rotate=180] (b19start) {} 
 ;
 
 %\draw[line width=\blockLineWidth] (b10l1) -- ($ (b10l1)!0.6!(b12start) $) node (b10l2) {} -- (b12start);
 %\draw[line width=\blockLineWidth] (b10l1) -- ($ (b10l1)!0.6!(b12start) $) node (b10l2) {} -- (b12start);
 
-\draw[line width=\blockLineWidth] (b9start) --++ (\blockIntraLength,-1\blockIntraLength) node (b11l1) {} --++ (1,0) node (b11l2) {} -- (b12start);
+\draw[line width=\blockLineWidth] (b9start) --++ (\blockIntraLength,-1\blockIntraLength) node (b11l1) {} --++ (\blockIntraLength,0) node (b11l2) {} -- (b12start);
 
 \led{(b1l1)}
 \led{(b1l2)}
@@ -189,10 +197,10 @@
 \led{(b10l1)}
 %\led{(b10l2)}
 \led{($ (b10l1)!0.6!(b12start) $)}
-\signal{($ (b12start) + (-1.5cm,-0.75cm) $)}{270}{209}
+\signal{($ (b12start) + (-2cm,-1cm) $)}{270}{209}
 \led{(b11l1)}
 \led{(b11l2)}
-\signal{($ (b12start) + (-0.2cm,-1.6cm) $)}{322}{210}
+\signal{($ (b12start) + (-0.1cm,-1.7cm) $)}{320}{210}
 \led{(b12l1)}
 \led{(b12l2)}
 \signal{($ (b13start) + (-0.5cm,-1cm) $)}{270}{211}
@@ -219,7 +227,7 @@
 % Buttons for station entry
 %
 
-\draw (-5,-8.5) node (Hp0) {\huge{\textsf{Hp0}}};
+\draw (-8.5,-8.5) node (Hp0) {\huge{\textsf{Hp0}}};
 \draw ($ (Hp0) + (1.8\buttonOuterSize,0) $) node (Hp2) {\huge{Hp2}};
 
 \button{($ (Hp2) + (0, -1) $)}
@@ -229,7 +237,20 @@
 \led{($ (Hp0) + (0, +1) $)}
 
 % Outer delimiter
-\draw (2cm,1cm) node {} --++ (-21cm,0)  node {} --++ (0,-12.5cm)  node {} --++ (21cm,0)  node {} -- cycle;
+%\draw (0cm,0cm) node {} --++ (-21cm,0)  node {} --++ (0,-12.5cm)  node {} --++ (21cm,0)  node {} -- cycle;
+
+% Maximum Space delimieter
+%\draw (0cm,0cm) node {} --++ (-25cm,0)  node {} --++ (0,-16.2cm)  node {} --++ (25cm,0)  node {} -- cycle;
+
+% Plate delimieter
+\draw (0cm,19mm) node (upperRight) {} --++ (-25cm,0) node (upperLeft) {} --++ (0,-20cm)  node (lowerLeft) {} --++ (25cm,0) node (lowerRight) {} -- cycle;
+
+% Drilling holes
+\drillingHole{($ (upperRight) - (2cm,1cm) $)}{3mm}
+\drillingHole{($ (upperLeft) - (-2cm,1cm) $)}{3mm}
+\drillingHole{($ (upperRight)!0.5!(upperLeft) - (0,1cm)$)}{3mm}
+\drillingHole{($ (lowerRight) + (-2cm,1cm) $)}{3mm}
+\drillingHole{($ (lowerLeft) + (2cm,1cm) $)}{3mm}
 
 \end{tikzpicture}
 \end{figure}

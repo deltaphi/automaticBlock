@@ -33,6 +33,7 @@
  */
 
 #include "Streckenblock.h"
+#include "MCP.h"
 
 #ifdef STRECKENBLOCK_H__DEBUG
 #define DEBUG(x) Serial.print(x)
@@ -209,6 +210,12 @@ void Streckenblock::notifyContinue(track_state state) {
 }
 
 void Streckenblock::requestSwitchGreen() {
+  mcp.requestDigitalWrite(mcpAddressRed, MCP_PIN_OFF);
+  if (continueBit) {
+    mcp.requestDigitalWrite(mcpAddressGreen, MCP_PIN_OFF);
+  } else {
+    mcp.requestDigitalWrite(mcpAddressGreen, MCP_PIN_ON);
+  }
   lnReqQueue->postSwitchRequest(switchAddress, SWITCH_GREEN);
   if (before != NULL) {
     before->notifyContinue(RUN);
@@ -216,18 +223,31 @@ void Streckenblock::requestSwitchGreen() {
 }
 
 void Streckenblock::requestSwitchRed() {
+  mcp.requestDigitalWrite(mcpAddressGreen, MCP_PIN_OFF);
+  if (continueBit) {
+    mcp.requestDigitalWrite(mcpAddressRed, MCP_PIN_OFF);
+  } else {
+    mcp.requestDigitalWrite(mcpAddressRed, MCP_PIN_ON);
+  }
   lnReqQueue->postSwitchRequest(switchAddress, SWITCH_RED);
   if (before != NULL) {
     before->notifyContinue(STOP);
   }
 }
 
-void Streckenblock::notifyExitSignalSwitchRequest(uint8_t state) {
+void Streckenblock::notifyExitSignalSwitchRequest(uint8_t state, uint8_t byteRed, uint8_t byteGreen) {
   if (after != NULL) {
     return;
   }
   
   exitSignalRequestedState = state;
+  if (exitSignalRequestedState == SWITCH_RED) {
+    mcp.requestDigitalWrite(byteRed, MCP_PIN_ON);
+    mcp.requestDigitalWrite(byteGreen, MCP_PIN_OFF);
+  } else {
+    mcp.requestDigitalWrite(byteRed, MCP_PIN_OFF);
+    mcp.requestDigitalWrite(byteGreen, MCP_PIN_ON);
+  }
   
   actExitSignalRequestedState();
 }

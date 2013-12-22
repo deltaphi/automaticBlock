@@ -36,20 +36,23 @@
 #define SENSOR_H__
 
 #include "Arduino.h"
+#include "MCP.h"
 
 #ifdef DO_DEBUG
 #define SENSOR_H__DEBUG
 #endif
 
+extern MCP mcp;
 
 class Sensor {
   public:
     enum sensor_state { FREE, OCCUPIED };
   protected:
     uint16_t address;
+    uint8_t mcpAddress;
     sensor_state state;
   public:
-    Sensor(uint16_t address): address(address), state(FREE) {}
+    Sensor(uint16_t address, uint8_t mcpAddress): address(address), mcpAddress(mcpAddress), state(FREE) {}
     ~Sensor() { address = 0; state = FREE; };
     inline sensor_state getState() const { return state; }
     inline bool isFree() const { return state == FREE; }
@@ -77,6 +80,7 @@ class Sensor {
         }
 #endif
         this->state = newState;
+        mcp.requestDigitalWrite(mcpAddress, (this->state == OCCUPIED ? MCP_PIN_ON : MCP_PIN_OFF));
         return true;
       } else {
         return false;

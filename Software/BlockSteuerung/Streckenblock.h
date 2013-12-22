@@ -37,6 +37,7 @@
 
 #include "Sensor.h"
 #include "LocoNetRequestQueue.h"
+#include "MCP.h"
 
 #define DO_DEBUG
 #define STRECKENBLOCK_H__DEBUG
@@ -44,6 +45,8 @@
 #ifdef STRECKENBLOCK_H__DEBUG
 void printStreckenblockState();
 #endif
+
+#define STRECKENBLOCK_MCP_STRUCT(chip, bank, red, green, front, main) { GET_MCP_ADDRESS_AS_BYTE(chip, bank, red), GET_MCP_ADDRESS_AS_BYTE(chip, bank, green), GET_MCP_ADDRESS_AS_BYTE(chip, bank, front), GET_MCP_ADDRESS_AS_BYTE(chip, bank, main) }
 
 class Streckenblock {
 #ifdef STRECKENBLOCK_H__DEBUG
@@ -53,6 +56,8 @@ class Streckenblock {
     enum track_state { STOP, RUN };
   protected:
     uint8_t id;
+    uint8_t mcpAddressRed;
+    uint8_t mcpAddressGreen;
     LocoNetRequestQueue * lnReqQueue;
     Sensor mainSensor;
     Sensor frontSensor;
@@ -78,20 +83,29 @@ public:
     void requestSwitchGreen();
 
     /* Handling the state of the exit signal */
-    void notifyExitSignalSwitchRequest(uint8_t state);
+    void notifyExitSignalSwitchRequest(uint8_t state, uint8_t byteRed, uint8_t byteGreen);
 
     uint8_t getId() const { return id; }
 
-    Streckenblock(): id(-1), lnReqQueue(NULL), mainSensor(0), frontSensor(0), switchAddress(0),
+    typedef struct {
+      uint8_t red;
+      uint8_t green;
+      uint8_t front;
+      uint8_t main;
+    } MCPAddresses;
+
+    Streckenblock(): id(-1), mcpAddressRed(0), mcpAddressGreen(0), lnReqQueue(NULL), mainSensor(0, 0), frontSensor(0, 0), switchAddress(0),
                       before(NULL), after(NULL), continueBit(false), frontSensorWasOccupied(false),
                       exitSignalRequestedState(SWITCH_RED) {}
     
-    Streckenblock(int id, LocoNetRequestQueue * lnReqQueue, uint16_t mainSensorAddress, uint16_t frontSensorAddress, uint16_t switchAddress):
-        id(id), lnReqQueue(lnReqQueue), mainSensor(mainSensorAddress), frontSensor(frontSensorAddress), switchAddress(switchAddress),
-        before(NULL), after(NULL), continueBit(false), frontSensorWasOccupied(false),
-        exitSignalRequestedState(SWITCH_RED) {}
+    Streckenblock(int id, MCPAddresses mcpAddresses, LocoNetRequestQueue * lnReqQueue,
+        uint16_t mainSensorAddress, uint16_t frontSensorAddress, uint16_t switchAddress):
+        id(id), mcpAddressRed(mcpAddresses.red), mcpAddressGreen(mcpAddresses.green), lnReqQueue(lnReqQueue),
+        mainSensor(mainSensorAddress, mcpAddresses.main), frontSensor(frontSensorAddress, mcpAddresses.front),
+        switchAddress(switchAddress), before(NULL), after(NULL), continueBit(false), 
+        frontSensorWasOccupied(false), exitSignalRequestedState(SWITCH_RED) {}
     
-  ~Streckenblock() { before = NULL; after = NULL; lnReqQueue = NULL; };
+    ~Streckenblock() { before = NULL; after = NULL; lnReqQueue = NULL; };
     
     inline void setBefore(Streckenblock * before) { this->before = before; }
     inline void setAfter(Streckenblock * after) { this->after = after; }
@@ -117,5 +131,7 @@ public:
     }
 #endif
 };
+
+extern MCP mcp;
 
 #endif
